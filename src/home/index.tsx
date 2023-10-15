@@ -7,6 +7,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import * as FaceDetector from 'expo-face-detector';
 import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 import { styless } from './styless';
 
 export function Home() {
@@ -14,7 +15,7 @@ export function Home() {
   const [selectedImageUri , setselectedImageURI] = useState('');
   const [faceDetected, setFaceDetected] = useState(false);
   const [type, setType] = useState(CameraType.front);
-  const ref = useRef(null);
+  const ref = useRef<Camera>(null);
   const faceValues = useSharedValue({
     width: 0,
     height: 0,
@@ -75,7 +76,7 @@ export function Home() {
       console.log(error);
     }
   }
-  const detectFaces = async (uri) => {
+  const detectFaces = async (uri: string) => {
     if (uri) {
       const detectResult = await FaceDetector.detectFacesAsync(uri, {
         mode: FaceDetector.FaceDetectorMode.fast,
@@ -95,8 +96,27 @@ export function Home() {
   // Função para alternar entre as câmeras frontal e traseira
   function changeCameraType() {
     setType(current => (current === CameraType.back ? CameraType.front : CameraType.back));
+    console.log('Camera trocada.');
   }
 
+  const compareImages = async (selectedImageUri: string, cameraImageUri: string) => {
+    try {
+      const selectedImageInfo = await FileSystem.getInfoAsync(selectedImageUri);
+      const cameraImageInfo = await FileSystem.getInfoAsync(cameraImageUri);
+
+      if (selectedImageInfo.exists && cameraImageInfo.exists) {
+        if (selectedImageInfo.size === cameraImageInfo.size) {
+          console.log('As imagens têm o mesmo tamanho');
+        } else {
+          console.log('As imagens têm tamanhos diferentes');
+        }
+      } else {
+        console.log('Um ou ambos os arquivos não existem');
+      }
+    } catch (error) {
+      console.error('Erro ao comparar imagens:', error);
+    }
+  };
   // Função para tirar uma foto com base no reconhecimento facial
   const takePhoto = async () => {
     if (ref.current && faceDetected == true )  {
@@ -106,6 +126,7 @@ export function Home() {
       if (asset) {
         console.log('Foto salva na galeria');
         Alert.alert('Atenção', 'Foto salva na galeria');
+        compareImages(selectedImageUri, photo.uri);
       } else {
         console.error('Falha ao salvar a foto na galeria');
         Alert.alert('Atenção', 'Falha ao salvar a foto na galeria');
