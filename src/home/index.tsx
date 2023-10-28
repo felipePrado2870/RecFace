@@ -8,7 +8,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FaceDetector from 'expo-face-detector';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-import { styless } from './styless';
+import * as FaceAPI from 'react-native-face-api';
+import { styless } from './styless'; 
 
 export function Home() {
   const [permission, requestPermission] = Camera.useCameraPermissions();
@@ -87,13 +88,13 @@ export function Home() {
       if (detectResult.faces.length > 0) {
         console.log(`Detected ${detectResult.faces.length} face(s)`);
         console.log(detectResult.faces);
-        // Você pode acessar informações sobre os rostos detectados em detectResult.faces
       } else {
         console.log('Nenhum rosto detectado.');
+        Alert.alert('Atenção', 'Nenhum rosto detectado.');
       }
     }
   };
-  // Função para alternar entre as câmeras frontal e traseira
+  // alternar entre as câmeras frontal e traseira
   function changeCameraType() {
     setType(current => (current === CameraType.back ? CameraType.front : CameraType.back));
     console.log('Camera trocada.');
@@ -101,23 +102,26 @@ export function Home() {
 
   const compareImages = async (selectedImageUri: string, cameraImageUri: string) => {
     try {
-      const selectedImageInfo = await FileSystem.getInfoAsync(selectedImageUri);
-      const cameraImageInfo = await FileSystem.getInfoAsync(cameraImageUri);
-
-      if (selectedImageInfo.exists && cameraImageInfo.exists) {
-        if (selectedImageInfo.size === cameraImageInfo.size) {
-          console.log('As imagens têm o mesmo tamanho');
-        } else {
-          console.log('As imagens têm tamanhos diferentes');
-        }
+      // imagens usando a biblioteca FaceAPI
+      const selectedImage = await FaceAPI.getImage(selectedImageUri);
+      const cameraImage = await FaceAPI.getImage(cameraImageUri);
+  
+      // Comparar as imagens
+      const similarity = await FaceAPI.compare(selectedImage, cameraImage);
+  
+      //limite de similaridade para determinar se são da mesma pessoa
+      const similarityThreshold = 0.6 ; // Ajuste conforme necessário
+  
+      if (similarity >= similarityThreshold) {
+        console.log('As imagens são da mesma pessoa.');
       } else {
-        console.log('Um ou ambos os arquivos não existem');
+        console.log('As imagens são de pessoas diferentes.');
       }
     } catch (error) {
-      console.error('Erro ao comparar imagens:', error);
+      console.error('Erro na comparação facial:', error);
     }
   };
-  // Função para tirar uma foto com base no reconhecimento facial
+  // tirar uma foto com base no reconhecimento facial
   const takePhoto = async () => {
     if (ref.current && faceDetected == true )  {
       const photo = await ref.current.takePictureAsync();
@@ -137,7 +141,7 @@ export function Home() {
     }
   }
 
-  // Função para lidar com os rostos detectados
+  // rostos detectados
   function handleFacesDetected({ faces }: FaceDetectionResult) {
     //console.log(faces)
     const face = faces[0] as any;
@@ -156,7 +160,7 @@ export function Home() {
     }
   }
 
-  // Estilos animados para destacar o rosto
+  // destacar o rosto detectado
   const animatedStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     zIndex: 1,
